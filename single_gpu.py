@@ -13,7 +13,7 @@ class Trainer:
             gpu_id: int,
             save_every: int) -> None:
         self.gpu_id = gpu_id
-        self.model = model
+        self.model = model.to(self.gpu_id)
         self.train_data = train_data
         self.optimizer = optimizer
         self.save_every = save_every
@@ -31,6 +31,7 @@ class Trainer:
         for source, targets in self.train_data:
             source = source.to(self.gpu_id)
             targets = targets.to(self.gpu_id)
+            self._run_batch(source, targets)
 
     def _save_checkpoint(self, epoch):
         ckp = self.model.state_dict()

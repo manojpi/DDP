@@ -21,7 +21,7 @@ def ddp_setup(rank, world_size):
     os.environ["MASTER_PORT"] = "12355"
 
     torch.cuda.set_device(rank)
-    init_process_group(backend="nccl", rank=rank, world_size=world_size)\
+    init_process_group(backend="nccl", rank=rank, world_size=world_size)
 
 class Trainer:
     def __init__(
@@ -32,7 +32,7 @@ class Trainer:
             gpu_id: int,
             save_every: int) -> None:
         self.gpu_id = gpu_id
-        self.model = model
+        self.model = model.to(self.gpu_id)
         self.train_data = train_data
         self.optimizer = optimizer
         self.save_every = save_every
@@ -51,6 +51,7 @@ class Trainer:
         for source, targets in self.train_data:
             source = source.to(self.gpu_id)
             targets = targets.to(self.gpu_id)
+            self._run_batch(source, targets)
 
     def _save_checkpoint(self, epoch):
         ckp = self.model.module.state_dict()
@@ -80,10 +81,10 @@ def initialize_dataloader(dataset: Dataset, batch_size: int):
         sampler=DistributedSampler(dataset)
     )
 
-def main(rank: int, world_size: int, total_epochs, save_every, batch_szie):
+def main(rank: int, world_size: int, total_epochs, save_every, batch_size):
     ddp_setup(rank, world_size)
     dataset, model, optimizer = initialize_train_objs()
-    train_data = initialize_dataloader(dataset, batch_szie)
+    train_data = initialize_dataloader(dataset, batch_size)
     trainer = Trainer(model, train_data, optimizer, rank, save_every)
     trainer.train(total_epochs)
     destroy_process_group()
